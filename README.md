@@ -1,2 +1,2 @@
 # EKArchive
-Get current and archive data of Energetyczny Kompas from PSE.
+Zestaw 2 aplikacji na różne systemy, służących do pobierania danych z Energetycznego Kompasu od PSE.
