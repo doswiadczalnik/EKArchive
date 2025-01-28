@@ -68,22 +68,7 @@
 
 - **Nazwa pliku**: `cache.dat`.
 - **Lokalizacja**: Katalog roboczy aplikacji.
-- **Format**: Skompresowany JSON (GZip).
-
-## Struktura JSON w cache:
-
-```json
-{
-  "2025-01-01": [
-    {
-      "udtczas": "2025-01-01 00:00:00",
-      "znacznik": 0,
-      "business_date": "2025-01-01",
-      "source_datetime": "2025-01-01 22:25:25.722"
-    }
-  ]
-}
-```
+- **Format**: Skompresowany binarny (GZip).
 
 ## Wsparcie
 

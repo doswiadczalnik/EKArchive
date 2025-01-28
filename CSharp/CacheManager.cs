@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -10,6 +9,7 @@ namespace EKArchive
     public class CacheManager
     {
         private const string CacheFileName = "cache.dat";
+        private const int CacheVersion = 2;
         private Dictionary<DateTime, List<ApiData>> _cache;
 
         public CacheManager()
@@ -17,27 +17,52 @@ namespace EKArchive
             LoadCache();
         }
 
+
         private void LoadCache()
         {
-            if (File.Exists(CacheFileName))
+            _cache = new Dictionary<DateTime, List<ApiData>>();
+
+            if (!File.Exists(CacheFileName)) 
+                return;
+            
+            try
             {
-                try
+                using (var fileStream = new FileStream(CacheFileName, FileMode.Open))
+                using (var decompressionStream = new GZipStream(fileStream, CompressionMode.Decompress))
+                using (var reader = new BinaryReader(decompressionStream))
                 {
-                    using (var fileStream = new FileStream(CacheFileName, FileMode.Open))
-                    using (var decompressionStream = new GZipStream(fileStream, CompressionMode.Decompress))
-                    using (var reader = new StreamReader(decompressionStream))
+                    int version = reader.ReadInt32();
+                    if (version != CacheVersion)
                     {
-                        var json = reader.ReadToEnd();
-                        _cache = JsonConvert.DeserializeObject<Dictionary<DateTime, List<ApiData>>>(json);
+                        Console.WriteLine($"Nieobsługiwana wersja cache: {version}. Oczekiwana wersja: {CacheVersion}.");
+                        return;
+                    }
+
+                    int daysCount = reader.ReadInt32();
+                    for (int i = 0; i < daysCount; i++)
+                    {
+                        DateTime date = DateTime.FromBinary(reader.ReadInt64());
+                        int dataCount = reader.ReadInt32();
+                        var dataList = new List<ApiData>();
+
+                        for (int j = 0; j < dataCount; j++)
+                        {
+                            dataList.Add(new ApiData
+                            {
+                                UdtCzas = DateTime.FromBinary(reader.ReadInt64()),
+                                Znacznik = reader.ReadInt32(),
+                                BusinessDate = DateTime.FromBinary(reader.ReadInt64()),
+                                SourceDatetime = DateTime.FromBinary(reader.ReadInt64())
+                            });
+                        }
+
+                        _cache[date] = dataList;
                     }
                 }
-                catch
-                {
-                    _cache = new Dictionary<DateTime, List<ApiData>>();
-                }
             }
-            else
+            catch (Exception ex)
             {
+                Console.WriteLine($"Błąd podczas wczytywania cache: {ex.Message}");
                 _cache = new Dictionary<DateTime, List<ApiData>>();
             }
         }
@@ -50,10 +75,24 @@ namespace EKArchive
                 {
                     using (var fileStream = new FileStream(CacheFileName, FileMode.Create))
                     using (var compressionStream = new GZipStream(fileStream, CompressionMode.Compress))
-                    using (var writer = new StreamWriter(compressionStream))
+                    using (var writer = new BinaryWriter(compressionStream))
                     {
-                        var json = JsonConvert.SerializeObject(_cache, Formatting.Indented);
-                        writer.Write(json);
+                        writer.Write(CacheVersion);
+
+                        writer.Write(_cache.Count);
+                        foreach (var kvp in _cache)
+                        {
+                            writer.Write(kvp.Key.ToBinary());
+                            writer.Write(kvp.Value.Count);
+
+                            foreach (var data in kvp.Value)
+                            {
+                                writer.Write(data.UdtCzas.ToBinary());
+                                writer.Write(data.Znacznik);
+                                writer.Write(data.BusinessDate.ToBinary());
+                                writer.Write(data.SourceDatetime.ToBinary());
+                            }
+                        }
                     }
                 });
             }
@@ -63,17 +102,12 @@ namespace EKArchive
             }
         }
 
-        public List<ApiData> GetFromCache(DateTime date)
+        internal List<ApiData> GetFromCache(DateTime date)
         {
-            if (_cache.ContainsKey(date))
-            {
-                return _cache[date];
-            }
-
-            return null;
+            return _cache.ContainsKey(date) ? _cache[date] : null;
         }
 
-        public void SaveToCache(DateTime date, List<ApiData> data)
+        internal void SaveToCache(DateTime date, List<ApiData> data)
         {
             _cache[date] = data;
 

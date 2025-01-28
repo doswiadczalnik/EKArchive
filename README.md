@@ -5,6 +5,7 @@
 ## Funkcjonalności
 
 - Pobieranie danych o zapotrzebowaniu energetycznym dla wybranego dnia.
+- Mechanizm cache oparty na lazy-inicjalizacji
 - Obsługa alertów energetycznych z odpowiednimi kolorami w tabeli:
   - **Zalecane użytkowanie** (kolor: ciemnozielony)
   - **Normalne użytkowanie** (kolor: jasnozielony)
@@ -14,7 +15,7 @@
   - Dane zapisywane są w skompresowanym pliku `cache.dat`.
   - Cache jest automatycznie sprawdzany przed wykonaniem zapytania do API.
   - Dzień bieżący zawsze odświeżany.
-- Asynchroniczne zapisywanie cache w tle, aby nie blokować interfejsu użytkownika.
+- Asynchroniczne zapisywanie cache w tle.
 
 ## Technologie
 
@@ -67,22 +68,7 @@
 
 - **Nazwa pliku**: `cache.dat`.
 - **Lokalizacja**: Katalog roboczy aplikacji.
-- **Format**: Skompresowany JSON (GZip).
-
-## Struktura JSON w cache:
-
-```json
-{
-  "2025-01-01": [
-    {
-      "udtczas": "2025-01-01 00:00:00",
-      "znacznik": 0,
-      "business_date": "2025-01-01",
-      "source_datetime": "2025-01-01 22:25:25.722"
-    }
-  ]
-}
-```
+- **Format**: Skompresowany binarny (GZip).
 
 ## Wsparcie
 

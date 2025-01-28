@@ -40,14 +40,13 @@ namespace EKArchive
                 }
             }
 
-            if (data != null && data.Count > 0)
+            if (data == null || data.Count <= 0)
             {
-                DisplayData(data);
+                MessageBox.Show("Brak danych dla wybranej daty.", "Informacja", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
             }
-            else
-            {
-                MessageBox.Show("Brak danych dla wybranej daty.", "Informacja", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+
+            DisplayData(data);
         }
 
         private static async Task<List<ApiData>> FetchDataFromApi(DateTime selectedDate, DateTime nextDate)
@@ -66,29 +65,40 @@ namespace EKArchive
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Błąd podczas pobierania danych: {ex.Message}", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($@"Błąd podczas pobierania danych: {ex.Message}", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return null;
             }
         }
 
         private void DisplayData(List<ApiData> data)
         {
+            string businessDateText, sourceDateText;
+
             DataGrid.Rows.Clear();
 
-            var first = data[0];
-            BusinessDateLabel.Text = $"Doba handlowa: {first.business_date}";
-            SourceDateLabel.Text = $"Data publikacji: {first.source_datetime?.Split('.')[0]}";
-
-            foreach (var item in data)
+            if (data != null && data.Count > 0)
             {
-                string time = item.UdtCzas?.Split(' ')[1] ?? "Brak danych";
-                int alert = item.Znacznik;
+                businessDateText = $"{data[0].BusinessDate:yyyy-MM-dd}";
+                sourceDateText = $"{data[0].SourceDatetime:yyyy-MM-dd HH:mm:ss}";
 
-                int rowIndex = DataGrid.Rows.Add(time, GetAlertText(alert));
+                foreach (var item in data)
+                {
+                    string time = item.UdtCzas.ToString("HH:mm");
+                    int alert = item.Znacznik;
 
-                var row = DataGrid.Rows[rowIndex];
-                ApplyRowColor(row, alert);
+                    int rowIndex = DataGrid.Rows.Add(time, GetAlertText(alert));
+
+                    var row = DataGrid.Rows[rowIndex];
+                    ApplyRowColor(row, alert);
+                }
             }
+            else
+            {
+                businessDateText = sourceDateText = "Brak danych";
+            }
+
+            BusinessDateLabel.Text = $"Doba handlowa: {businessDateText}";
+            SourceDateLabel.Text = $"Data publikacji: {sourceDateText}";
         }
 
         private static void ApplyRowColor(DataGridViewRow row, int alert)
