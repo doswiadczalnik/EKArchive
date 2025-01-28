@@ -1,13 +1,18 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Newtonsoft.Json;
 
 namespace EKArchive
 {
     public partial class MainForm : Form
     {
+        private readonly Lazy<CacheManager> _cacheManager = new Lazy<CacheManager>(() => new CacheManager());
+
+
         public MainForm()
         {
             InitializeComponent();
@@ -15,10 +20,39 @@ namespace EKArchive
 
         private async void FetchDataButton_Click(object sender, EventArgs e)
         {
-            string selectedDate = DatePicker.Value.ToString("yyyy-MM-dd");
-            string nextDate = DatePicker.Value.AddDays(1).ToString("yyyy-MM-dd");
+            DateTime selectedDate = DatePicker.Value.Date;
+            DateTime nextDate = selectedDate.AddDays(1);
+            DateTime today = DateTime.Now.Date;
 
-            string url = $"https://api.raporty.pse.pl/api/pdgsz?$filter=udtczas ge '{selectedDate}' and udtczas lt '{nextDate}'";
+            List<ApiData> data = null;
+            if (selectedDate != today)
+            {
+                data = _cacheManager.Value.GetFromCache(selectedDate);
+            }
+
+            if (data == null)
+            {
+                data = await FetchDataFromApi(selectedDate, nextDate);
+
+                if (selectedDate != today && data != null)
+                {
+                    _cacheManager.Value.SaveToCache(selectedDate, data);
+                }
+            }
+
+            if (data != null && data.Count > 0)
+            {
+                DisplayData(data);
+            }
+            else
+            {
+                MessageBox.Show("Brak danych dla wybranej daty.", "Informacja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private static async Task<List<ApiData>> FetchDataFromApi(DateTime selectedDate, DateTime nextDate)
+        {
+            string url = $"https://api.raporty.pse.pl/api/pdgsz?$filter=udtczas ge '{selectedDate:yyyy-MM-dd}' and udtczas lt '{nextDate:yyyy-MM-dd}'";
 
             try
             {
@@ -26,40 +60,34 @@ namespace EKArchive
                 {
                     string response = await client.GetStringAsync(url);
 
-                    var data = JsonConvert.DeserializeObject<ApiResponse>(response);
-
-                    DataGrid.Rows.Clear();
-
-                    if (data?.Value == null || data.Value.Count == 0)
-                    {
-                        BusinessDateLabel.Text = $"Doba handlowa: {selectedDate}";
-                        SourceDateLabel.Text = $"Data publikacji: brak danych";
-                        MessageBox.Show("Brak danych dla wybranej daty.");
-
-                        return;
-                    }
-
-                    string businessDate = data.Value[0].business_date ?? "Brak danych";
-                    string sourceDatetime = data.Value[0].source_datetime?.Split('.')[0] ?? "Brak danych";
-
-                    BusinessDateLabel.Text = $"Doba handlowa: {businessDate}";
-                    SourceDateLabel.Text = $"Data publikacji: {sourceDatetime}";
-
-                    foreach (var item in data.Value)
-                    {
-                        string time = item.UdtCzas?.Split(' ')[1] ?? "Brak danych";
-                        int alert = item.Znacznik;
-
-                        int rowIndex = DataGrid.Rows.Add(time, GetAlertText(alert));
-
-                        var row = DataGrid.Rows[rowIndex];
-                        ApplyRowColor(row, alert);
-                    }
+                    var apiResponse = JsonConvert.DeserializeObject<ApiResponse>(response);
+                    return apiResponse?.Value;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Błąd podczas pobierania danych: {ex.Message}");
+                MessageBox.Show($"Błąd podczas pobierania danych: {ex.Message}", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+        }
+
+        private void DisplayData(List<ApiData> data)
+        {
+            DataGrid.Rows.Clear();
+
+            var first = data[0];
+            BusinessDateLabel.Text = $"Doba handlowa: {first.business_date}";
+            SourceDateLabel.Text = $"Data publikacji: {first.source_datetime?.Split('.')[0]}";
+
+            foreach (var item in data)
+            {
+                string time = item.UdtCzas?.Split(' ')[1] ?? "Brak danych";
+                int alert = item.Znacznik;
+
+                int rowIndex = DataGrid.Rows.Add(time, GetAlertText(alert));
+
+                var row = DataGrid.Rows[rowIndex];
+                ApplyRowColor(row, alert);
             }
         }
 
