@@ -5,6 +5,7 @@
 ## Funkcjonalności
 
 - Pobieranie danych o zapotrzebowaniu energetycznym dla wybranego dnia.
+- Mechanizm cache oparty na lazy-inicjalizacji
 - Obsługa alertów energetycznych z odpowiednimi kolorami w tabeli:
   - **Zalecane użytkowanie** (kolor: ciemnozielony)
   - **Normalne użytkowanie** (kolor: jasnozielony)
@@ -14,7 +15,7 @@
   - Dane zapisywane są w skompresowanym pliku `cache.dat`.
   - Cache jest automatycznie sprawdzany przed wykonaniem zapytania do API.
   - Dzień bieżący zawsze odświeżany.
-- Asynchroniczne zapisywanie cache w tle, aby nie blokować interfejsu użytkownika.
+- Asynchroniczne zapisywanie cache w tle.
 
 ## Technologie
 
@@ -34,7 +35,7 @@
 1. **Sklonuj repozytorium**:
    
    ```bash
-   git clone https://github.com/yourusername/ek-archive.git
+   git clone https://github.com/doswiadczalnik/EKArchive
    ```
 
 2. **Otwórz projekt w Visual Studio**.

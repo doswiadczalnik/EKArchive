@@ -34,7 +34,7 @@
 1. **Sklonuj repozytorium**:
    
    ```bash
-   git clone https://github.com/yourusername/ek-archive.git
+   git clone https://github.com/doswiadczalnik/EKArchive
    ```
 
 2. **Otwórz projekt w Visual Studio**.
