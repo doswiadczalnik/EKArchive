@@ -10,6 +10,8 @@ namespace EKArchive
     {
         private const string CacheFileName = "cache.dat";
         private const int CacheVersion = 2;
+        private const int NumberOfOursInDay = 24;
+
         private Dictionary<DateTime, List<ApiData>> _cache;
 
         public CacheManager()
@@ -56,7 +58,10 @@ namespace EKArchive
                             });
                         }
 
-                        _cache[date] = dataList;
+                        if (dataList.Count == NumberOfOursInDay)
+                        {
+                            _cache[date] = dataList;
+                        }
                     }
                 }
             }
